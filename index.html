@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AGNT — AI Team Messenger</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0e0f11;
+      --sidebar: #111318;
+      --surface: #16181d;
+      --border: #222530;
+      --border2: #2a2e3d;
+      --text: #dde1ee;
+      --muted: #4a5068;
+      --muted2: #6b7394;
+      --input-bg: #1a1c24;
+      --scrollbar: #222530;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Cabinet Grotesk', sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 248px;
+      flex-shrink: 0;
+      background: var(--sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-logo {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: #60efbc;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; font-weight: 600;
+      color: #000;
+      flex-shrink: 0;
+    }
+    .logo-text { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 0.1em; }
+    .logo-sub  { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 0.08em; }
+
+    /* Model selector */
+    .model-wrap {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .model-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 6px;
+    }
+    .model-select-row { display: flex; gap: 6px; align-items: center; }
+    select#model-select {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      padding: 6px 8px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a5068'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 24px;
+    }
+    select#model-select:focus { border-color: #60efbc; }
+    select#model-select option { background: #16181d; }
+
+    .btn-refresh {
+      width: 28px; height: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--muted2);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .btn-refresh:hover { border-color: var(--muted2); color: var(--text); }
+    .btn-refresh.spinning { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .sidebar-section {
+      padding: 12px 12px 5px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--muted);
+      flex-shrink: 0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .sidebar-section span { color: var(--muted); font-size: 9px; }
+
+    .agent-list { padding: 0 8px 8px; flex: 1; overflow-y: auto; }
+    .agent-list::-webkit-scrollbar { width: 3px; }
+    .agent-list::-webkit-scrollbar-track { background: transparent; }
+    .agent-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .agent-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 9px;
+      border-radius: 7px;
+      margin-bottom: 1px;
+      transition: background 0.15s, opacity 0.3s;
+      opacity: 0.38;
+    }
+    .agent-item.available { opacity: 1; }
+    .agent-item.selected-agent { background: var(--surface); opacity: 1; }
+    .agent-item:hover { background: var(--surface); opacity: 0.8; }
+    .agent-item.selected-agent:hover { opacity: 1; }
+
+    .agent-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      flex-shrink: 0; position: relative;
+    }
+    .agent-dot.streaming::after {
+      content: '';
+      position: absolute;
+      inset: -3px; border-radius: 50%;
+      border: 1.5px solid currentColor;
+      opacity: 0.5;
+      animation: pulse-ring 1s ease infinite;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .agent-info { flex: 1; min-width: 0; }
+    .agent-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .agent-role-tag { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--muted2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .agent-status-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: transparent; flex-shrink: 0;
+    }
+    .agent-status-dot.on { background: #3ddc84; }
+    .agent-status-dot.streaming { background: #60efbc; animation: blink 0.8s ease infinite; }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity: 0.3; } }
+
+    .sidebar-footer {
+      border-top: 1px solid var(--border);
+      padding: 12px 14px;
+      flex-shrink: 0;
+    }
+    .ollama-status { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted2); }
+    .ollama-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+    .ollama-dot.ok { background: #3ddc84; }
+    .ollama-dot.err { background: #ff8c69; }
+
+    /* ── MAIN ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .chat-header {
+      padding: 13px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg); flex-shrink: 0;
+    }
+    .chat-title { font-size: 15px; font-weight: 700; }
+    .chat-sub { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted2); }
+    .header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+    .btn-clear {
+      font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+      padding: 5px 11px; border-radius: 6px;
+      border: 1px solid var(--border2); background: transparent; color: var(--muted2);
+      cursor: pointer; transition: all 0.15s; letter-spacing: 0.05em;
+    }
+    .btn-clear:hover { border-color: var(--muted2); color: var(--text); }
+
+    /* Messages */
+    .messages {
+      flex: 1; overflow-y: auto;
+      padding: 26px 22px;
+      display: flex; flex-direction: column; gap: 16px;
+      scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 4px; }
+
+    .empty-state {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; opacity: 0.35;
+      font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+      color: var(--muted); text-align: center;
+      margin: auto;
+    }
+    .empty-icon { font-size: 30px; margin-bottom: 6px; }
+
+    /* Routing system message */
+    .msg-system {
+      display: flex; flex-direction: column; gap: 4px;
+      animation: fadeSlideIn 0.2s ease both;
+    }
+    .msg-system-inner {
+      background: rgba(96,239,188,0.04);
+      border: 1px dashed rgba(96,239,188,0.22);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: rgba(96,239,188,0.65);
+      line-height: 1.6;
+    }
+    .routing-agents { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .routing-tag {
+      font-size: 10px; padding: 2px 8px; border-radius: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      border: 1px solid currentColor;
+      opacity: 0.85;
+    }
+
+    /* Message bubble */
+    .msg {
+      display: flex; flex-direction: column; gap: 5px;
+      animation: fadeSlideIn 0.2s ease both;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user { align-items: flex-end; }
+    .msg.agent { align-items: flex-start; }
+
+    .msg-meta {
+      display: flex; align-items: center; gap: 7px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; color: var(--muted2);
+    }
+    .msg-avatar {
+      width: 21px; height: 21px; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace;
+      color: #000; flex-shrink: 0;
+    }
+    .msg-bubble {
+      max-width: 74%; padding: 11px 15px;
+      border-radius: 12px;
+      font-size: 13.5px; line-height: 1.65;
+      word-break: break-word; white-space: pre-wrap;
+      position: relative;
+    }
+    .msg.user .msg-bubble {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 12px 12px 4px 12px;
+    }
+    .msg.agent .msg-bubble { border-radius: 12px 12px 12px 4px; }
+
+    .cursor {
+      display: inline-block; width: 2px; height: 13px;
+      background: currentColor; margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink-cursor 0.6s step-end infinite;
+    }
+    @keyframes blink-cursor { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    .stop-btn {
+      position: absolute; top: -9px; right: -9px;
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 7px; color: #000;
+      transition: transform 0.15s; z-index: 10; font-weight: 700;
+    }
+    .stop-btn:hover { transform: scale(1.2); }
+
+    .interrupted-tag {
+      font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+      color: var(--muted); padding: 2px 6px;
+      border: 1px solid var(--border); border-radius: 4px;
+      margin-top: 4px; display: inline-block;
+    }
+
+    .thinking-dots span {
+      display: inline-block; width: 5px; height: 5px;
+      border-radius: 50%; background: currentColor;
+      margin: 0 2px; animation: bounce-dot 1.2s ease infinite;
+    }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce-dot {
+      0%,80%,100% { transform: translateY(0); opacity:0.4; }
+      40% { transform: translateY(-5px); opacity:1; }
+    }
+
+    /* ── INPUT ── */
+    .input-area {
+      border-top: 1px solid var(--border);
+      padding: 14px 22px 18px;
+      background: var(--bg); flex-shrink: 0;
+    }
+    .input-row { display: flex; gap: 10px; align-items: flex-end; }
+    .input-wrap {
+      flex: 1; background: var(--input-bg);
+      border: 1px solid var(--border2); border-radius: 11px;
+      display: flex; align-items: flex-end;
+      padding: 4px 4px 4px 14px;
+      transition: border-color 0.2s; gap: 8px;
+    }
+    .input-wrap:focus-within { border-color: #60efbc; }
+    #task-input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: var(--text);
+      font-family: 'Cabinet Grotesk', sans-serif; font-size: 14px;
+      resize: none; min-height: 24px; max-height: 120px;
+      padding: 9px 0; line-height: 1.5;
+    }
+    #task-input::placeholder { color: var(--muted); }
+    .send-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: #60efbc; border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: all 0.15s; color: #000; font-size: 14px;
+    }
+    .send-btn:hover { background: #4dd9a6; transform: scale(1.05); }
+    .send-btn:disabled { background: var(--border2); color: var(--muted); cursor: default; transform: none; }
+
+    .hint-row {
+      margin-top: 7px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--muted);
+      display: flex; gap: 14px;
+    }
+    .hint-row kbd {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 3px; padding: 1px 4px;
+      font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">AG</div>
+    <div>
+      <div class="logo-text">AGNT</div>
+      <div class="logo-sub">Local AI Team</div>
+    </div>
+  </div>
+
+  <div class="model-wrap">
+    <div class="model-label">Model</div>
+    <div class="model-select-row">
+      <select id="model-select"></select>
+      <button class="btn-refresh" id="refresh-btn" onclick="loadModels()" title="Refresh models">↻</button>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <span>Agents</span>
+    <span id="agent-count-label">15 total</span>
+  </div>
+  <div class="agent-list" id="agent-list"></div>
+
+  <div class="sidebar-footer">
+    <div class="ollama-status">
+      <div class="ollama-dot" id="ollama-dot"></div>
+      <span id="ollama-label">checking…</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="chat-header">
+    <div>
+      <div class="chat-title">Team Channel</div>
+      <div class="chat-sub">Orchestrator assembles the right team per task</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-clear" onclick="clearChat()">Clear chat</button>
+    </div>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🤖</div>
+      <div>Type a task to assemble your team.</div>
+      <div style="font-size:10px;margin-top:4px;opacity:0.8">The Orchestrator will pick the relevant agents and delegate.</div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <div class="input-wrap">
+        <textarea id="task-input" rows="1" placeholder="Describe a task for the team…" oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="startTask()" title="Send (Ctrl+Enter)">➤</button>
+    </div>
+    <div class="hint-row">
+      <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</span>
+      <span>· Click ✕ on any bubble to stop that agent</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── ALL AGENT DEFINITIONS ─────────────────────────────────────────
+  const ALL_AGENTS = [
+    {
+      id: 'orchestrator',
+      name: 'Orchestrator',
+      abbr: 'OR',
+      color: '#60efbc',
+      domain: 'Strategy · Delegation',
+      alwaysRun: true,
+      systemPrompt: `You are the Orchestrator of a cross-functional AI product team. Your response has two parts:
+
+PART 1 — OUTPUT A JSON ROUTING BLOCK FIRST (mandatory, no preamble before it):
+Decide which specialist agents should respond to this task. Pick only genuinely relevant ones — usually 2–5. More is not better.
+
+Available agent IDs:
+- marketer: brand, positioning, go-to-market, messaging, campaigns
+- architect: system design, infrastructure, tech stack decisions, scalability
+- staff-dev: senior implementation, code quality, abstractions, cross-team concerns
+- medior-dev: hands-on coding, library selection, time estimates, implementation steps
+- junior-dev: beginner perspective, learning curve, simple tasks, naive questions
+- devops: CI/CD, Docker, cloud infra, deployment pipelines, monitoring
+- data-engineer: data pipelines, ETL, schema design, databases, warehousing
+- ml-engineer: ML models, training, inference, embeddings, AI/LLM integration
+- ux-designer: user flows, wireframes, interaction design, accessibility, usability
+- copywriter: content strategy, microcopy, documentation, tone of voice
+- product-manager: roadmap, user stories, acceptance criteria, prioritization
+- security-engineer: auth, vulnerabilities, threat modeling, compliance (GDPR/SOC2)
+- qa-engineer: test strategy, edge cases, automation, quality gates
+- data-analyst: KPIs, metrics, instrumentation, dashboards, A/B testing
+
+Output ONLY this JSON first, nothing before it:
+\`\`\`json
+{"agents": ["id1", "id2"], "reason": "one concise sentence why these agents"}
+\`\`\`
+
+PART 2 — ORCHESTRATION BRIEF:
+After the JSON block, write a short delegation brief (max 120 words): what the task requires, which parts each agent should focus on, and any key risks or dependencies the team should know upfront.`
+    },
+    {
+      id: 'marketer',
+      name: 'Marketer',
+      abbr: 'MK',
+      color: '#ff8c69',
+      domain: 'Brand · GTM · Messaging',
+      systemPrompt: `You are the Marketer on a product team. Given the task, deliver a sharp marketing perspective: target audience, core value proposition, messaging angle, positioning relative to alternatives, suggested channels, and go-to-market considerations. Be creative but grounded in user reality. Under 180 words.`
+    },
+    {
+      id: 'architect',
+      name: 'Architect',
+      abbr: 'AR',
+      color: '#7eb8ff',
+      domain: 'System Design · Infrastructure',
+      systemPrompt: `You are the Software Architect. Given the task, deliver a concise technical architecture overview: key components, data flow, API contracts, storage decisions, scalability approach, and the top 2–3 technical tradeoffs. Flag any architectural risks. Be precise and opinionated. Under 200 words.`
+    },
+    {
+      id: 'staff-dev',
+      name: 'Staff Developer',
+      abbr: 'SD',
+      color: '#c084fc',
+      domain: 'Senior Eng · Code Quality',
+      systemPrompt: `You are a Staff Engineer. Given the task, give a senior engineering perspective: recommended approach and key abstractions, code quality standards to enforce, testing philosophy, what juniors/mediors commonly get wrong here, and cross-team dependencies to watch for. Be opinionated and direct. Under 200 words.`
+    },
+    {
+      id: 'medior-dev',
+      name: 'Medior Developer',
+      abbr: 'MD',
+      color: '#fbbf24',
+      domain: 'Implementation · Libraries',
+      systemPrompt: `You are a Medior Developer. Given the task, describe your concrete implementation plan: step-by-step approach, specific libraries or frameworks you'd use and why, rough file/module structure, time estimate, and 2–3 clarifying questions you'd ask before starting. Be specific and hands-on. Under 180 words.`
+    },
+    {
+      id: 'junior-dev',
+      name: 'Junior Developer',
+      abbr: 'JD',
+      color: '#86efac',
+      domain: 'Learning · Fresh Eyes',
+      systemPrompt: `You are a Junior Developer. Given the task, honestly share: what you understand, what confuses you, which parts feel overwhelming, and your naive first-pass plan. Ask the practical questions a senior might forget to address. Your fresh perspective often catches things others overlook. Be genuine, not performative. Under 160 words.`
+    },
+    {
+      id: 'devops',
+      name: 'DevOps Engineer',
+      abbr: 'DO',
+      color: '#f472b6',
+      domain: 'CI/CD · Cloud · Reliability',
+      systemPrompt: `You are a DevOps Engineer. Given the task, address the operational perspective: CI/CD pipeline requirements, containerization approach, infrastructure needs, environment configuration, monitoring and alerting strategy, rollback plan, and cost implications. Flag operational risks clearly. Under 180 words.`
+    },
+    {
+      id: 'data-engineer',
+      name: 'Data Engineer',
+      abbr: 'DE',
+      color: '#38bdf8',
+      domain: 'Pipelines · ETL · Schemas',
+      systemPrompt: `You are a Data Engineer. Given the task, describe the data architecture: storage technology choices with rationale, schema or data model design, ingestion and transformation pipelines, data quality checks, access patterns, and scalability considerations. Be specific about technologies. Under 180 words.`
+    },
+    {
+      id: 'ml-engineer',
+      name: 'ML Engineer',
+      abbr: 'ML',
+      color: '#a78bfa',
+      domain: 'Models · Inference · AI',
+      systemPrompt: `You are an ML Engineer. Given the task, outline the machine learning approach: model selection rationale, training data requirements, evaluation metrics, inference latency targets, embedding or fine-tuning strategy, and production serving considerations. Be technically precise about the AI/ML stack. Under 200 words.`
+    },
+    {
+      id: 'ux-designer',
+      name: 'UX Designer',
+      abbr: 'UX',
+      color: '#fb923c',
+      domain: 'Flows · Wireframes · A11y',
+      systemPrompt: `You are a UX Designer. Given the task, describe the user experience approach: primary user flows, key screens or interaction moments, information architecture, edge case handling, accessibility requirements, and what you'd prototype first to validate assumptions. Flag any usability risks. Under 180 words.`
+    },
+    {
+      id: 'copywriter',
+      name: 'Copywriter',
+      abbr: 'CW',
+      color: '#34d399',
+      domain: 'Content · Docs · Tone',
+      systemPrompt: `You are a Copywriter and Content Strategist. Given the task, address the content and communication layer: naming conventions, UI microcopy, documentation structure, tone of voice guidelines, onboarding language, and error message strategy. Highlight where poor copy causes user friction or mistrust. Under 160 words.`
+    },
+    {
+      id: 'product-manager',
+      name: 'Product Manager',
+      abbr: 'PM',
+      color: '#e879f9',
+      domain: 'Roadmap · Stories · Scope',
+      systemPrompt: `You are a Product Manager. Given the task, provide the product perspective: who this is for and why it matters now, success metrics, 2–3 crisp user stories, explicit scope boundaries (what's out of scope), key dependencies, and the most important open question that needs answering before work begins. Under 200 words.`
+    },
+    {
+      id: 'security-engineer',
+      name: 'Security Engineer',
+      abbr: 'SE',
+      color: '#f87171',
+      domain: 'Auth · Threats · Compliance',
+      systemPrompt: `You are a Security Engineer. Given the task, perform a brief threat analysis: attack surface assessment, authentication and authorization concerns, data sensitivity classification, applicable compliance requirements (GDPR, SOC2, PCI-DSS), top 3 vulnerabilities to mitigate, and concrete recommendations. Rate the overall risk level (low/medium/high). Under 180 words.`
+    },
+    {
+      id: 'qa-engineer',
+      name: 'QA Engineer',
+      abbr: 'QA',
+      color: '#fde68a',
+      domain: 'Testing · Edge Cases · Quality',
+      systemPrompt: `You are a QA Engineer. Given the task, define the testing strategy: which test types are needed (unit/integration/e2e/performance/security), critical happy-path and edge-case scenarios, automation approach and tooling, definition of done from a quality perspective, and 3 things developers are likely to forget to test. Under 180 words.`
+    },
+    {
+      id: 'data-analyst',
+      name: 'Data Analyst',
+      abbr: 'DA',
+      color: '#67e8f9',
+      domain: 'Metrics · KPIs · Insights',
+      systemPrompt: `You are a Data Analyst. Given the task, define the analytics and measurement layer: primary KPIs and how to calculate them, events to instrument, dashboard requirements, cohort or segmentation approach, A/B test design if applicable, and how you'd declare success or failure after launch. Be specific about metrics. Under 160 words.`
+    }
+  ];
+
+  const AGENT_MAP = Object.fromEntries(ALL_AGENTS.map(a => [a.id, a]));
+
+  // ── COOKIE HELPERS ──────────────────────────────────────────────
+  function setCookie(name, value, days = 365) {
+    const exp = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)};expires=${exp};path=/`;
+  }
+  function getCookie(name) {
+    return document.cookie.split('; ').reduce((r, part) => {
+      const [k, v] = part.split('=');
+      return k === name ? decodeURIComponent(v) : r;
+    }, '');
+  }
+
+  // ── MODEL LOADING ───────────────────────────────────────────────
+  async function loadModels() {
+    const sel = document.getElementById('model-select');
+    const btn = document.getElementById('refresh-btn');
+    btn.classList.add('spinning');
+    sel.disabled = true;
+
+    try {
+      const r = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(4000) });
+      if (!r.ok) throw new Error('not ok');
+      const data = await r.json();
+      const models = (data.models || []).map(m => m.name).sort();
+
+      if (!models.length) {
+        sel.innerHTML = '<option value="">No models found — pull one first</option>';
+      } else {
+        sel.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+        const saved = getCookie('agnt_model');
+        if (saved && models.includes(saved)) {
+          sel.value = saved;
+        } else {
+          setCookie('agnt_model', sel.value);
+        }
+      }
+      updateOllamaStatus(true);
+    } catch {
+      sel.innerHTML = '<option value="">Ollama offline</option>';
+      updateOllamaStatus(false);
+    }
+
+    sel.disabled = false;
+    btn.classList.remove('spinning');
+
+    sel.onchange = () => setCookie('agnt_model', sel.value);
+  }
+
+  function getModel() {
+    return document.getElementById('model-select').value || 'llama3.2';
+  }
+
+  // ── OLLAMA STATUS ───────────────────────────────────────────────
+  function updateOllamaStatus(ok) {
+    document.getElementById('ollama-dot').className = 'ollama-dot ' + (ok ? 'ok' : 'err');
+    document.getElementById('ollama-label').textContent = ok ? 'ollama connected' : 'ollama offline';
+  }
+
+  async function checkOllama() {
+    try {
+      const r = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(3000) });
+      updateOllamaStatus(r.ok);
+    } catch { updateOllamaStatus(false); }
+  }
+
+  // ── SIDEBAR ─────────────────────────────────────────────────────
+  function renderSidebar(selectedIds = []) {
+    const list = document.getElementById('agent-list');
+    const selSet = new Set(selectedIds);
+
+    list.innerHTML = ALL_AGENTS.map(a => {
+      const isActive = a.alwaysRun || selSet.has(a.id);
+      return `
+    <div class="agent-item ${isActive ? 'selected-agent available' : ''}" id="sidebar-${a.id}">
+      <div class="agent-dot" id="dot-${a.id}" style="background:${a.color};color:${a.color}"></div>
+      <div class="agent-info">
+        <div class="agent-name" style="color:${a.color}">${a.name}</div>
+        <div class="agent-role-tag" id="role-label-${a.id}">${a.domain}</div>
+      </div>
+      <div class="agent-status-dot ${isActive ? 'on' : ''}" id="status-${a.id}"></div>
+    </div>`;
+    }).join('');
+
+    const count = selectedIds.length + 1; // +1 for orchestrator
+    document.getElementById('agent-count-label').textContent =
+      selectedIds.length ? `${count} active` : `${ALL_AGENTS.length} total`;
+  }
+
+  // ── STATE ────────────────────────────────────────────────────────
+  let abortControllers = {};
+  let streamingAgents = new Set();
+  let messageCount = 0;
+  let isRunning = false;
+
+  // ── MESSAGE HELPERS ──────────────────────────────────────────────
+  function hideEmpty() {
+    document.getElementById('empty-state')?.remove();
+  }
+
+  function addUserMessage(text) {
+    hideEmpty();
+    const el = document.createElement('div');
+    el.className = 'msg user';
+    el.id = 'msg-' + (++messageCount);
+    el.innerHTML = `
+    <div class="msg-meta" style="flex-direction:row-reverse">
+      <span>${ts()}</span><span>You</span>
+    </div>
+    <div class="msg-bubble">${esc(text)}</div>`;
+    msgs().appendChild(el);
+    scrollBottom();
+  }
+
+  function addRoutingMessage(agentIds, reason) {
+    hideEmpty();
+    const tags = agentIds.map(id => {
+      const a = AGENT_MAP[id];
+      return a ? `<span class="routing-tag" style="color:${a.color};border-color:${a.color}">${a.name}</span>` : '';
+    }).join('');
+    const el = document.createElement('div');
+    el.className = 'msg-system';
+    el.id = 'msg-' + (++messageCount);
+    el.innerHTML = `<div class="msg-system-inner">
+    <span style="opacity:0.55">⟳ Routing →</span> ${esc(reason)}
+    <div class="routing-agents">${tags}</div>
+  </div>`;
+    msgs().appendChild(el);
+    scrollBottom();
+  }
+
+  function addAgentMessage(agent) {
+    hideEmpty();
+    const id = 'msg-' + (++messageCount);
+    const el = document.createElement('div');
+    el.className = 'msg agent';
+    el.id = id;
+    el.innerHTML = `
+    <div class="msg-meta">
+      <div class="msg-avatar" style="background:${agent.color}">${agent.abbr}</div>
+      <span style="color:${agent.color};font-weight:700;font-size:12px">${agent.name}</span>
+      <span>${ts()}</span>
+    </div>
+    <div class="msg-bubble" id="bubble-${id}"
+      style="background:${rgba(agent.color,0.06)};border:1px solid ${rgba(agent.color,0.18)}">
+      <div class="thinking-dots" id="thinking-${id}" style="color:${agent.color}">
+        <span></span><span></span><span></span>
+      </div>
+    </div>`;
+    msgs().appendChild(el);
+    scrollBottom();
+    return id;
+  }
+
+  function startStreaming(msgId, agent) {
+    const bubble = document.getElementById('bubble-' + msgId);
+    document.getElementById('thinking-' + msgId)?.remove();
+
+    const stopBtn = document.createElement('div');
+    stopBtn.className = 'stop-btn';
+    stopBtn.innerHTML = '✕';
+    stopBtn.style.background = agent.color;
+    stopBtn.onclick = () => stopAgent(agent.id, msgId);
+    bubble.appendChild(stopBtn);
+
+    const textNode = document.createTextNode('');
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    cursor.style.background = agent.color;
+    bubble.appendChild(textNode);
+    bubble.appendChild(cursor);
+    return { textNode };
+  }
+
+  function finishStreaming(msgId, agentId, interrupted = false) {
+    const bubble = document.getElementById('bubble-' + msgId);
+    if (!bubble) return;
+    bubble.querySelector('.cursor')?.remove();
+    bubble.querySelector('.stop-btn')?.remove();
+    document.getElementById('thinking-' + msgId)?.remove();
+    if (interrupted) {
+      const tag = document.createElement('div');
+      tag.className = 'interrupted-tag';
+      tag.textContent = '⚡ interrupted';
+      bubble.appendChild(tag);
+    }
+    setAgentIdle(agentId);
+  }
+
+  function setAgentStreaming(agentId) {
+    streamingAgents.add(agentId);
+    document.getElementById('dot-' + agentId)?.classList.add('streaming');
+    const s = document.getElementById('status-' + agentId);
+    if (s) s.className = 'agent-status-dot streaming';
+    const l = document.getElementById('role-label-' + agentId);
+    if (l) l.textContent = getModel() + ' · live';
+  }
+
+  function setAgentIdle(agentId) {
+    streamingAgents.delete(agentId);
+    delete abortControllers[agentId];
+    document.getElementById('dot-' + agentId)?.classList.remove('streaming');
+    const s = document.getElementById('status-' + agentId);
+    if (s) s.className = 'agent-status-dot on';
+    const l = document.getElementById('role-label-' + agentId);
+    const a = AGENT_MAP[agentId];
+    if (l && a) l.textContent = a.domain;
+  }
+
+  function stopAgent(agentId, msgId) {
+    abortControllers[agentId]?.abort();
+    finishStreaming(msgId, agentId, true);
+  }
+
+  // ── STREAM FROM OLLAMA ───────────────────────────────────────────
+  async function streamAgent(agent, userTask) {
+    const model = getModel();
+    const msgId = addAgentMessage(agent);
+    const { textNode } = startStreaming(msgId, agent);
+    setAgentStreaming(agent.id);
+
+    const ctrl = new AbortController();
+    abortControllers[agent.id] = ctrl;
+
+    let fullText = '';
+    try {
+      const resp = await fetch('http://localhost:11434/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          model,
+          stream: true,
+          messages: [
+            { role: 'system', content: agent.systemPrompt },
+            { role: 'user', content: userTask }
+          ]
+        })
+      });
+
+      if (!resp.ok) {
+        textNode.textContent = `[Error ${resp.status}: ${await resp.text()}]`;
+        finishStreaming(msgId, agent.id);
+        return '';
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+          if (!line.trim()) continue;
+          try {
+            const json = JSON.parse(line);
+            const tok = json?.message?.content || '';
+            if (tok) { fullText += tok; textNode.textContent += tok; scrollBottom(); }
+            if (json.done) break;
+          } catch {}
+        }
+      }
+      finishStreaming(msgId, agent.id, false);
+      return fullText;
+
+    } catch (err) {
+      if (err.name === 'AbortError') return fullText;
+      document.getElementById('thinking-' + msgId)?.remove();
+      textNode.textContent = '[Connection error — is Ollama running at localhost:11434?]';
+      finishStreaming(msgId, agent.id);
+      return '';
+    }
+  }
+
+  // ── PARSE ORCHESTRATOR JSON ───────────────────────────────────────
+  function parseRouting(text) {
+    // Try ```json ... ``` block first, then raw {}
+    const blockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const raw = blockMatch ? blockMatch[1] : text.match(/\{[\s\S]*?"agents"[\s\S]*?\}/)?.[0];
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw.trim());
+      const agents = (parsed.agents || [])
+        .map(id => id.trim())
+        .filter(id => AGENT_MAP[id] && id !== 'orchestrator');
+      return { agents, reason: parsed.reason || 'Agents selected for this task.' };
+    } catch { return null; }
+  }
+
+  // ── MAIN FLOW ────────────────────────────────────────────────────
+  async function startTask() {
+    if (isRunning) return;
+    const input = document.getElementById('task-input');
+    const task = input.value.trim();
+    if (!task) return;
+
+    isRunning = true;
+    document.getElementById('send-btn').disabled = true;
+    input.value = '';
+    input.style.height = 'auto';
+
+    addUserMessage(task);
+
+    // 1. Orchestrator decides which agents to use
+    const orch = AGENT_MAP['orchestrator'];
+    const orchText = await streamAgent(orch, `Task: ${task}`);
+
+    // 2. Parse routing from orchestrator output
+    const routing = parseRouting(orchText);
+    let selectedIds;
+
+    if (routing && routing.agents.length) {
+      selectedIds = routing.agents;
+      addRoutingMessage(selectedIds, routing.reason);
+    } else {
+      // Fallback
+      selectedIds = ['architect', 'staff-dev', 'marketer'];
+      addRoutingMessage(selectedIds, 'Default team (routing parse failed).');
+    }
+
+    renderSidebar(selectedIds);
+
+    // 3. Run each selected agent
+    for (const agentId of selectedIds) {
+      const agent = AGENT_MAP[agentId];
+      if (!agent) continue;
+      await delay(450);
+      await streamAgent(agent, `Task: "${task}"\n\nProvide your expert perspective in your domain.`);
+    }
+
+    isRunning = false;
+    document.getElementById('send-btn').disabled = false;
+  }
+
+  // ── UTILS ─────────────────────────────────────────────────────────
+  const msgs = () => document.getElementById('messages');
+  const scrollBottom = () => { const m = msgs(); m.scrollTop = m.scrollHeight; };
+  const ts = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+  const rgba = (hex, a) => {
+    const [r,g,b] = [1,3,5].map(i => parseInt(hex.slice(i,i+2),16));
+    return `rgba(${r},${g},${b},${a})`;
+  };
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+  function handleKey(e) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); startTask(); }
+  }
+
+  function clearChat() {
+    msgs().innerHTML = `<div class="empty-state" id="empty-state">
+    <div class="empty-icon">🤖</div>
+    <div>Type a task to assemble your team.</div>
+    <div style="font-size:10px;margin-top:4px;opacity:0.8">The Orchestrator will pick the relevant agents and delegate.</div>
+  </div>`;
+    Object.values(abortControllers).forEach(c => c.abort());
+    abortControllers = {};
+    streamingAgents.clear();
+    isRunning = false;
+    document.getElementById('send-btn').disabled = false;
+    renderSidebar([]);
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────
+  renderSidebar([]);
+  loadModels();
+  setInterval(checkOllama, 12000);
+</script>
+</body>
+</html>
