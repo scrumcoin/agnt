@@ -178,6 +178,24 @@
     .ollama-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
     .ollama-dot.ok { background: #3ddc84; }
     .ollama-dot.err { background: #ff8c69; }
+    .ollama-note { display: none; margin-top: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; line-height: 1.4; color: var(--muted2); word-break: break-word; }
+    .ollama-note.show { display: block; }
+    .ollama-note code { color: var(--text); }
+    .ollama-copy {
+      width: 20px; height: 20px;
+      margin-left: 5px;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      background: var(--surface);
+      color: var(--muted2);
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      vertical-align: middle;
+      transition: all 0.15s;
+    }
+    .ollama-copy:hover { border-color: var(--muted2); color: var(--text); }
+    .ollama-copy svg { width: 12px; height: 12px; }
+    .ollama-copy-label { margin-left: 5px; color: var(--muted2); vertical-align: middle; }
 
     /* ── MAIN ── */
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -393,6 +411,7 @@
       <div class="ollama-dot" id="ollama-dot"></div>
       <span id="ollama-label">checking…</span>
     </div>
+    <div class="ollama-note" id="ollama-note"></div>
   </div>
 </div>
 
@@ -637,9 +656,76 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
   }
 
   // ── OLLAMA STATUS ───────────────────────────────────────────────
+  function getCurrentOrigin() {
+    if (window.location.origin && window.location.origin !== 'null') return window.location.origin;
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+
+  function getOllamaOriginsCommand() {
+    return `OLLAMA_ORIGINS="${getCurrentOrigin()}" ollama serve`;
+  }
+
+  async function copyOllamaCommand(btn, label) {
+    const command = getOllamaOriginsCommand();
+    try {
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(command);
+        } catch {
+          copyTextFallback(command);
+        }
+      } else {
+        copyTextFallback(command);
+      }
+      label.textContent = 'Copied!';
+      setTimeout(() => {
+        label.textContent = 'Copy command';
+      }, 1200);
+    } catch {
+      label.textContent = 'Copy failed';
+      setTimeout(() => {
+        label.textContent = 'Copy command';
+      }, 1200);
+    }
+  }
+
+  function copyTextFallback(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+  }
+
   function updateOllamaStatus(ok) {
     document.getElementById('ollama-dot').className = 'ollama-dot ' + (ok ? 'ok' : 'err');
     document.getElementById('ollama-label').textContent = ok ? 'ollama connected' : 'ollama offline';
+    const note = document.getElementById('ollama-note');
+    note.className = 'ollama-note' + (ok ? '' : ' show');
+    note.textContent = '';
+    if (!ok) {
+      const label = document.createTextNode('Run ');
+
+      const code = document.createElement('code');
+      code.textContent = getOllamaOriginsCommand();
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'ollama-copy';
+      copyBtn.setAttribute('aria-label', 'Copy Ollama command');
+      copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 8h10v12H8z" stroke="currentColor" stroke-width="2"/><path d="M6 16H4V4h12v2" stroke="currentColor" stroke-width="2"/></svg>';
+
+      const copyLabel = document.createElement('span');
+      copyLabel.className = 'ollama-copy-label';
+      copyLabel.textContent = 'Copy command';
+
+      copyBtn.onclick = () => copyOllamaCommand(copyBtn, copyLabel);
+
+      note.append(label, code, copyBtn, copyLabel);
+    }
   }
 
   async function checkOllama() {
@@ -850,7 +936,7 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     } catch (err) {
       if (err.name === 'AbortError') return fullText;
       document.getElementById('thinking-' + msgId)?.remove();
-      textNode.textContent = '[Connection error — is Ollama running at localhost:11434?]';
+      textNode.textContent = `[Connection error — is Ollama running at localhost:11434? Try: ${getOllamaOriginsCommand()}]`;
       finishStreaming(msgId, agent.id);
       return '';
     }
