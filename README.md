@@ -8,6 +8,20 @@ No backend. No API keys. No cloud. Everything runs on your machine.
 
 ---
 
+## Demo
+
+A live demo is available at **[iamsterdam800.github.io/agnt](https://iamsterdam800.github.io/agnt/)**.
+
+> **Requires a locally running [Ollama](https://ollama.com) instance!**
+> 
+> To allow the demo page to connect to your local Ollama, start it with:
+>
+> ```bash
+> OLLAMA_ORIGINS="https://iamsterdam800.github.io" ollama serve
+> ```
+
+---
+
 ## How it works
 
 1. You type a task in the input box
