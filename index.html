@@ -6,8 +6,10 @@
   <title>AGNT — AI Team Messenger</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/github-dark.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -326,9 +328,8 @@
       padding: 0.08em 0.28em;
     }
     .msg-render pre {
+      position: relative;
       overflow-x: auto;
-      scrollbar-width: thin;
-      scrollbar-color: gray transparent;
       white-space: pre;
       background: rgba(0,0,0,0.24);
       border: 1px solid rgba(255,255,255,0.08);
@@ -336,10 +337,42 @@
       padding: 10px 11px;
     }
     .msg-render pre code {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar) transparent;
       background: transparent;
       border: 0;
       padding: 0;
       font-size: 0.86em;
+    }
+    .code-wrap {
+      position: relative;
+      margin: 0.55em 0;
+    }
+    .msg-render .code-wrap pre { margin: 0; padding-top: 28px; }
+    .code-copy {
+      position: absolute;
+      top: 6px;
+      right: 7px;
+      z-index: 1;
+      height: 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 5px;
+      background: rgba(14,15,17,0.86);
+      color: rgba(221,225,238,0.74);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      padding: 0 7px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .code-copy:hover {
+      color: var(--text);
+      border-color: rgba(255,255,255,0.26);
+      background: rgba(14,15,17,0.96);
+    }
+    .msg-render .hljs {
+      background: transparent;
+      color: inherit;
     }
     .msg-render blockquote {
       border-left: 2px solid currentColor;
@@ -836,6 +869,49 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     document.getElementById('empty-state')?.remove();
   }
 
+  function decorateCodeBlocks(root) {
+    const blocks = [...root.querySelectorAll('pre > code')];
+    if (!blocks.length) return;
+
+    for (const code of blocks) {
+      if (window.hljs && !code.dataset.highlighted) {
+        try { window.hljs.highlightElement(code); } catch {}
+      }
+
+      const pre = code.parentElement;
+      if (!pre || pre.parentElement?.classList.contains('code-wrap')) continue;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'code-wrap';
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.appendChild(pre);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'code-copy';
+      btn.textContent = 'Copy';
+      btn.onclick = async () => {
+        try {
+          if (navigator.clipboard?.writeText) {
+            try {
+              await navigator.clipboard.writeText(code.textContent);
+            } catch {
+              copyTextFallback(code.textContent);
+            }
+          } else {
+            copyTextFallback(code.textContent);
+          }
+          btn.textContent = 'Copied';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+        } catch {
+          btn.textContent = 'Failed';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+        }
+      };
+      wrap.appendChild(btn);
+    }
+  }
+
   function renderMarkdownText(text) {
     const parseMarkdown = window.marked?.parse || window.marked;
     if (typeof parseMarkdown !== 'function') return null;
@@ -889,6 +965,7 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
         content.textContent = text;
       } else {
         content.innerHTML = html;
+        decorateCodeBlocks(content);
       }
       scrollBottom();
     };
