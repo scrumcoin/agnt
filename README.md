@@ -62,9 +62,9 @@ The Orchestrator typically activates 2–5 agents per task based on what's genui
 - At least one model pulled, e.g.:
 
 ```bash
-ollama pull llama3.2
-ollama pull qwen2.5:7b
-ollama pull mistral
+ollama pull llama4
+ollama pull qwen3.6
+ollama pull gemma4:27b
 ```
 
 - A modern browser (Chrome, Firefox, Safari, Edge)
@@ -116,7 +116,7 @@ Then restart Ollama.
 
 ## Running on multiple machines
 
-If you have multiple Macs on the same network, you can run Ollama on each and point the app at different hosts. By default the app connects to `localhost:11434`. To use a remote Ollama instance, edit the fetch URLs in `index.html`:
+If you have multiple computers on the same network, you can run Ollama on each and point the app at different hosts. By default the app connects to `localhost:11434`. To use a remote Ollama instance, edit the fetch URLs in `index.html`:
 
 ```js
 // Change this in two places near the bottom of the <script> block:
@@ -139,24 +139,12 @@ The sidebar dropdown is populated from your locally available Ollama models at s
 
 Recommended models by use case:
 
-| Use case | Model |
-|---|---|
-| Best reasoning (orchestration) | `qwen2.5:72b`, `llama3.3:70b` |
-| Balanced quality/speed | `qwen2.5:7b`, `llama3.2` |
-| Code-focused tasks | `deepseek-coder-v2:16b` |
-| Fast responses | `mistral:7b`, `phi4:14b` |
-
-With 128 GB RAM (Apple Silicon M-series) you can keep multiple models loaded simultaneously.
-
----
-
-## Repo structure
-
-```
-.
-├── index.html   # The entire app — one self-contained file
-└── README.md
-```
+| Use case | Model                              |
+|---|------------------------------------|
+| Best reasoning (orchestration) | `qwen3.6:27b`, `llama4`            |
+| Balanced quality/speed | `qwen3.6:35bb`, `gemma4:26b`       |
+| Code-focused tasks | `qwen3.6:35b-a3b-mlx-bf16`         |
+| Fast responses | `gemma4`, `mistral:7b`, `phi4:14b` |
 
 ---
 
