@@ -765,6 +765,30 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     return `OLLAMA_ORIGINS="${getCurrentOrigin()}" ollama serve`;
   }
 
+  function getPlatformTroubleshootingOS() {
+    const platform = (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent || '').toLowerCase();
+    if (platform.includes('win')) return 'win';
+    if (platform.includes('mac') || platform.includes('iphone') || platform.includes('ipad')) return 'mac';
+    return 'linux';
+  }
+
+  async function loadPlatformTroubleshootingMarkdown() {
+    const os = getPlatformTroubleshootingOS();
+    try {
+      const resp = await fetch(`docs/troubleshooting-${os}.md`, { cache: 'no-cache' });
+      if (resp.ok) return await resp.text();
+    } catch {}
+    return `# Ollama Connection Guide
+
+I could not load \`docs/troubleshooting-${os}.md\` from this page.
+
+Run Ollama with this origin enabled, then retry:
+
+\`\`\`bash
+${getOllamaOriginsCommand()}
+\`\`\``;
+  }
+
   async function copyOllamaCommand(btn, label) {
     const command = getOllamaOriginsCommand();
     try {
@@ -1048,6 +1072,23 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     return id;
   }
 
+  async function typeRendererText(renderer, text, wordDelay = 35) {
+    const chunks = text.match(/\S+\s*/g) || [text];
+    for (const chunk of chunks) {
+      renderer.append(chunk);
+      await delay(wordDelay);
+    }
+  }
+
+  async function addAgentMarkdownMessage(agent, text) {
+    const msgId = addAgentMessage(agent);
+    const { renderer } = startStreaming(msgId, agent);
+    setAgentStreaming(agent.id);
+    await typeRendererText(renderer, text);
+    finishStreaming(msgId, agent.id);
+    return msgId;
+  }
+
   function startStreaming(msgId, agent) {
     const bubble = document.getElementById('bubble-' + msgId);
     document.getElementById('thinking-' + msgId)?.remove();
@@ -1110,6 +1151,8 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
   }
 
   // ── STREAM FROM OLLAMA ───────────────────────────────────────────
+  const OLLAMA_CONNECTION_ERROR = '__AGNT_OLLAMA_CONNECTION_ERROR__';
+
   async function streamAgent(agent, userTask) {
     const model = getModel();
     const msgId = addAgentMessage(agent);
@@ -1160,11 +1203,17 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
       return fullText;
 
     } catch (err) {
-      if (err.name === 'AbortError') return fullText;
+      if (err?.name === 'AbortError') return fullText;
       document.getElementById('thinking-' + msgId)?.remove();
-      renderer.setText(`[Connection error — is Ollama running at localhost:11434? Try: ${getOllamaOriginsCommand()}]`);
+      await typeRendererText(renderer, 'I cannot connect to Ollama at `localhost:11434`, so I cannot route this task yet. Check that Ollama is installed, running, and allows this page origin, then retry.');
       finishStreaming(msgId, agent.id);
-      return '';
+
+      if (agent.id === 'orchestrator') {
+        const troubleshooting = await loadPlatformTroubleshootingMarkdown();
+        await addAgentMarkdownMessage(agent, troubleshooting);
+      }
+
+      return OLLAMA_CONNECTION_ERROR;
     }
   }
 
@@ -1200,6 +1249,14 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     // 1. Orchestrator decides which agents to use
     const orch = AGENT_MAP['orchestrator'];
     const orchText = await streamAgent(orch, `Task: ${task}`);
+
+    if (orchText === OLLAMA_CONNECTION_ERROR) {
+      isRunning = false;
+      document.getElementById('send-btn').disabled = false;
+      renderSidebar([]);
+      updateOllamaStatus(false);
+      return;
+    }
 
     // 2. Parse routing from orchestrator output
     const routing = parseRouting(orchText);
