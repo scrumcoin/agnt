@@ -1040,11 +1040,9 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
       <span>${ts()}</span>
     </div>
     <div class="msg-bubble" id="bubble-${id}"
-      style="background:${rgba(agent.color,0.06)};border:1px solid ${rgba(agent.color,0.18)}">
-      <div class="thinking-dots" id="thinking-${id}" style="color:${agent.color}">
-        <span></span><span></span><span></span>
-      </div>
-    </div>`;
+      style="background:${rgba(agent.color,0.06)};border:1px solid ${rgba(agent.color,0.18)}"
+      ><div class="thinking-dots" id="thinking-${id}" style="color:${agent.color}"
+      ><span></span><span></span><span></span></div></div>`;
     msgs().appendChild(el);
     scrollBottom();
     return id;
