@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AGNT — AI Team Messenger</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -298,6 +301,70 @@
       border-radius: 12px 12px 4px 12px;
     }
     .msg.agent .msg-bubble { border-radius: 12px 12px 12px 4px; }
+
+    .msg-render {
+      white-space: normal;
+    }
+    .msg-render > :first-child { margin-top: 0; }
+    .msg-render > :last-child { margin-bottom: 0; }
+    .msg-render p,
+    .msg-render ul,
+    .msg-render ol,
+    .msg-render pre,
+    .msg-render blockquote,
+    .msg-render table { margin: 0.55em 0; }
+    .msg-render ul,
+    .msg-render ol { padding-left: 1.35em; }
+    .msg-render li + li { margin-top: 0.15em; }
+    .msg-render a { color: inherit; text-decoration-color: currentColor; text-underline-offset: 2px; }
+    .msg-render code {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.9em;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 4px;
+      padding: 0.08em 0.28em;
+    }
+    .msg-render pre {
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: gray transparent;
+      white-space: pre;
+      background: rgba(0,0,0,0.24);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 7px;
+      padding: 10px 11px;
+    }
+    .msg-render pre code {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      font-size: 0.86em;
+    }
+    .msg-render blockquote {
+      border-left: 2px solid currentColor;
+      color: rgba(221,225,238,0.78);
+      padding-left: 0.8em;
+    }
+    .msg-render table {
+      width: 100%;
+      border-collapse: collapse;
+      display: block;
+      overflow-x: auto;
+    }
+    .msg-render th,
+    .msg-render td {
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 4px 7px;
+      text-align: left;
+    }
+    .msg-render .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.25em 0;
+      margin: 0.65em 0;
+    }
+    .msg-render .katex { color: var(--text); }
 
     .cursor {
       display: inline-block; width: 2px; height: 13px;
@@ -769,6 +836,89 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     document.getElementById('empty-state')?.remove();
   }
 
+  function renderMarkdownText(text) {
+    const parseMarkdown = window.marked?.parse || window.marked;
+    if (typeof parseMarkdown !== 'function') return null;
+
+    const math = [];
+    const stashMath = (source, formula, displayMode) => {
+      if (!window.katex) return source;
+      try {
+        const html = window.katex.renderToString(formula.trim(), {
+          displayMode,
+          throwOnError: false,
+          strict: false,
+          trust: true
+        });
+        const index = math.push(html) - 1;
+        return `@@AGNT_MATH_${index}@@`;
+      } catch {
+        return source;
+      }
+    };
+
+    const replaceMath = part => part
+      .replace(/\$\$([\s\S]+?)\$\$/g, (m, formula) => stashMath(m, formula, true))
+      .replace(/\\\[([\s\S]+?)\\\]/g, (m, formula) => stashMath(m, formula, true))
+      .replace(/\\\(([\s\S]+?)\\\)/g, (m, formula) => stashMath(m, formula, false))
+      .replace(/(^|[^\\])\$([^\n$]+?)\$/g, (m, lead, formula) => lead + stashMath(m, formula, false));
+
+    const withMath = text
+      .split(/(```[\s\S]*?(?:```|$)|`[^`\n]*(?:`|$))/g)
+      .map(part => part.startsWith('`') ? part : replaceMath(part))
+      .join('');
+
+    const html = parseMarkdown(withMath, { gfm: true, breaks: true });
+    return html.replace(/@@AGNT_MATH_(\d+)@@/g, (_, index) => math[Number(index)] || '');
+  }
+
+  function createStreamRenderer(bubble) {
+    let text = '';
+    let timer = 0;
+    const content = document.createElement('div');
+    content.className = 'msg-render';
+    bubble.appendChild(content);
+
+    const paint = () => {
+      timer = 0;
+      let html = null;
+      try {
+        html = renderMarkdownText(text);
+      } catch {}
+      if (html == null) {
+        content.textContent = text;
+      } else {
+        content.innerHTML = html;
+      }
+      scrollBottom();
+    };
+
+    const schedule = () => {
+      if (!timer) timer = setTimeout(paint, 50);
+    };
+
+    return {
+      append(chunk) {
+        text += chunk;
+        schedule();
+      },
+      setText(nextText) {
+        text = nextText;
+        this.flush();
+      },
+      flush() {
+        if (timer) {
+          clearTimeout(timer);
+          timer = 0;
+        }
+        paint();
+      },
+      getText() {
+        return text;
+      }
+    };
+  }
+
   function addUserMessage(text) {
     hideEmpty();
     const el = document.createElement('div');
@@ -834,18 +984,19 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     stopBtn.onclick = () => stopAgent(agent.id, msgId);
     bubble.appendChild(stopBtn);
 
-    const textNode = document.createTextNode('');
+    const renderer = createStreamRenderer(bubble);
     const cursor = document.createElement('span');
     cursor.className = 'cursor';
     cursor.style.background = agent.color;
-    bubble.appendChild(textNode);
     bubble.appendChild(cursor);
-    return { textNode };
+    bubble._streamRenderer = renderer;
+    return { renderer };
   }
 
   function finishStreaming(msgId, agentId, interrupted = false) {
     const bubble = document.getElementById('bubble-' + msgId);
     if (!bubble) return;
+    bubble._streamRenderer?.flush();
     bubble.querySelector('.cursor')?.remove();
     bubble.querySelector('.stop-btn')?.remove();
     document.getElementById('thinking-' + msgId)?.remove();
@@ -887,7 +1038,7 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
   async function streamAgent(agent, userTask) {
     const model = getModel();
     const msgId = addAgentMessage(agent);
-    const { textNode } = startStreaming(msgId, agent);
+    const { renderer } = startStreaming(msgId, agent);
     setAgentStreaming(agent.id);
 
     const ctrl = new AbortController();
@@ -910,7 +1061,7 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
       });
 
       if (!resp.ok) {
-        textNode.textContent = `[Error ${resp.status}: ${await resp.text()}]`;
+        renderer.setText(`[Error ${resp.status}: ${await resp.text()}]`);
         finishStreaming(msgId, agent.id);
         return '';
       }
@@ -925,7 +1076,7 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
           try {
             const json = JSON.parse(line);
             const tok = json?.message?.content || '';
-            if (tok) { fullText += tok; textNode.textContent += tok; scrollBottom(); }
+            if (tok) { fullText += tok; renderer.append(tok); }
             if (json.done) break;
           } catch {}
         }
@@ -936,7 +1087,7 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
     } catch (err) {
       if (err.name === 'AbortError') return fullText;
       document.getElementById('thinking-' + msgId)?.remove();
-      textNode.textContent = `[Connection error — is Ollama running at localhost:11434? Try: ${getOllamaOriginsCommand()}]`;
+      renderer.setText(`[Connection error — is Ollama running at localhost:11434? Try: ${getOllamaOriginsCommand()}]`);
       finishStreaming(msgId, agent.id);
       return '';
     }
