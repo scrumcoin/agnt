@@ -10,14 +10,14 @@ No backend. No API keys. No cloud. Everything runs on your machine.
 
 ## Demo
 
-A live demo is available at **[iamsterdam800.github.io/agnt](https://iamsterdam800.github.io/agnt/)**.
+A live demo is available at **https://scrumcoin.github.io/agnt**
 
 > **Requires a locally running [Ollama](https://ollama.com) instance!**
 > 
 > To allow the demo page to connect to your local Ollama, start it with:
 >
 > ```bash
-> OLLAMA_ORIGINS="https://iamsterdam800.github.io" ollama serve
+> OLLAMA_ORIGINS="https://scrumcoin.github.io" ollama serve
 > ```
 
 ---
@@ -80,7 +80,7 @@ Just open the published URL. Make sure Ollama is running locally and has CORS en
 ### Option B — Local file
 
 ```bash
-git clone https://github.com/your-username/agnt
+git clone https://github.com/scrumcoin/agnt
 open agnt/index.html
 ```
 
