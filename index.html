@@ -1324,6 +1324,15 @@ ${getOllamaOriginsCommand()}
   renderSidebar([]);
   loadModels();
   setInterval(checkOllama, 12000);
+
+  window.addEventListener('beforeunload', (event) => {
+    const input = document.getElementById('task-input');
+    const isDirty = input && input.value.trim().length > 0;
+    if (isDirty || isRunning) {
+      // Cancel the event as stated in the standard.
+      event.preventDefault();
+    }
+  });
 </script>
 </body>
 </html>
