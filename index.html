@@ -348,7 +348,9 @@
       position: relative;
       margin: 0.55em 0;
     }
-    .msg-render .code-wrap pre { margin: 0; padding-top: 28px; }
+    .msg-render .code-wrap pre {
+      margin: 0;
+    }
     .code-copy {
       position: absolute;
       top: 6px;
@@ -564,20 +566,20 @@ PART 1 — OUTPUT A JSON ROUTING BLOCK FIRST (mandatory, no preamble before it):
 Decide which specialist agents should respond to this task. Pick only genuinely relevant ones — usually 2–5. More is not better.
 
 Available agent IDs:
+- product-manager: roadmap, user stories, acceptance criteria, prioritization
 - marketer: brand, positioning, go-to-market, messaging, campaigns
 - architect: system design, infrastructure, tech stack decisions, scalability
-- staff-dev: senior implementation, code quality, abstractions, cross-team concerns
+- senior-dev: senior implementation, code quality, abstractions, cross-team concerns
 - medior-dev: hands-on coding, library selection, time estimates, implementation steps
 - junior-dev: beginner perspective, learning curve, simple tasks, naive questions
 - devops: CI/CD, Docker, cloud infra, deployment pipelines, monitoring
-- data-engineer: data pipelines, ETL, schema design, databases, warehousing
 - ml-engineer: ML models, training, inference, embeddings, AI/LLM integration
+- data-analyst: KPIs, metrics, instrumentation, dashboards, A/B testing
+- data-engineer: data pipelines, ETL, schema design, databases, warehousing
 - ux-designer: user flows, wireframes, interaction design, accessibility, usability
 - copywriter: content strategy, microcopy, documentation, tone of voice
-- product-manager: roadmap, user stories, acceptance criteria, prioritization
 - security-engineer: auth, vulnerabilities, threat modeling, compliance (GDPR/SOC2)
 - qa-engineer: test strategy, edge cases, automation, quality gates
-- data-analyst: KPIs, metrics, instrumentation, dashboards, A/B testing
 
 Output ONLY this JSON first, nothing before it:
 \`\`\`json
@@ -585,87 +587,7 @@ Output ONLY this JSON first, nothing before it:
 \`\`\`
 
 PART 2 — ORCHESTRATION BRIEF:
-After the JSON block, write a short delegation brief (max 120 words): what the task requires, which parts each agent should focus on, and any key risks or dependencies the team should know upfront.`
-    },
-    {
-      id: 'marketer',
-      name: 'Marketer',
-      abbr: 'MK',
-      color: '#ff8c69',
-      domain: 'Brand · GTM · Messaging',
-      systemPrompt: `You are the Marketer on a product team. Given the task, deliver a sharp marketing perspective: target audience, core value proposition, messaging angle, positioning relative to alternatives, suggested channels, and go-to-market considerations. Be creative but grounded in user reality. Under 180 words.`
-    },
-    {
-      id: 'architect',
-      name: 'Architect',
-      abbr: 'AR',
-      color: '#7eb8ff',
-      domain: 'System Design · Infrastructure',
-      systemPrompt: `You are the Software Architect. Given the task, deliver a concise technical architecture overview: key components, data flow, API contracts, storage decisions, scalability approach, and the top 2–3 technical tradeoffs. Flag any architectural risks. Be precise and opinionated. Under 200 words.`
-    },
-    {
-      id: 'staff-dev',
-      name: 'Staff Developer',
-      abbr: 'SD',
-      color: '#c084fc',
-      domain: 'Senior Eng · Code Quality',
-      systemPrompt: `You are a Staff Engineer. Given the task, give a senior engineering perspective: recommended approach and key abstractions, code quality standards to enforce, testing philosophy, what juniors/mediors commonly get wrong here, and cross-team dependencies to watch for. Be opinionated and direct. Under 200 words.`
-    },
-    {
-      id: 'medior-dev',
-      name: 'Medior Developer',
-      abbr: 'MD',
-      color: '#fbbf24',
-      domain: 'Implementation · Libraries',
-      systemPrompt: `You are a Medior Developer. Given the task, describe your concrete implementation plan: step-by-step approach, specific libraries or frameworks you'd use and why, rough file/module structure, time estimate, and 2–3 clarifying questions you'd ask before starting. Be specific and hands-on. Under 180 words.`
-    },
-    {
-      id: 'junior-dev',
-      name: 'Junior Developer',
-      abbr: 'JD',
-      color: '#86efac',
-      domain: 'Learning · Fresh Eyes',
-      systemPrompt: `You are a Junior Developer. Given the task, honestly share: what you understand, what confuses you, which parts feel overwhelming, and your naive first-pass plan. Ask the practical questions a senior might forget to address. Your fresh perspective often catches things others overlook. Be genuine, not performative. Under 160 words.`
-    },
-    {
-      id: 'devops',
-      name: 'DevOps Engineer',
-      abbr: 'DO',
-      color: '#f472b6',
-      domain: 'CI/CD · Cloud · Reliability',
-      systemPrompt: `You are a DevOps Engineer. Given the task, address the operational perspective: CI/CD pipeline requirements, containerization approach, infrastructure needs, environment configuration, monitoring and alerting strategy, rollback plan, and cost implications. Flag operational risks clearly. Under 180 words.`
-    },
-    {
-      id: 'data-engineer',
-      name: 'Data Engineer',
-      abbr: 'DE',
-      color: '#38bdf8',
-      domain: 'Pipelines · ETL · Schemas',
-      systemPrompt: `You are a Data Engineer. Given the task, describe the data architecture: storage technology choices with rationale, schema or data model design, ingestion and transformation pipelines, data quality checks, access patterns, and scalability considerations. Be specific about technologies. Under 180 words.`
-    },
-    {
-      id: 'ml-engineer',
-      name: 'ML Engineer',
-      abbr: 'ML',
-      color: '#a78bfa',
-      domain: 'Models · Inference · AI',
-      systemPrompt: `You are an ML Engineer. Given the task, outline the machine learning approach: model selection rationale, training data requirements, evaluation metrics, inference latency targets, embedding or fine-tuning strategy, and production serving considerations. Be technically precise about the AI/ML stack. Under 200 words.`
-    },
-    {
-      id: 'ux-designer',
-      name: 'UX Designer',
-      abbr: 'UX',
-      color: '#fb923c',
-      domain: 'Flows · Wireframes · A11y',
-      systemPrompt: `You are a UX Designer. Given the task, describe the user experience approach: primary user flows, key screens or interaction moments, information architecture, edge case handling, accessibility requirements, and what you'd prototype first to validate assumptions. Flag any usability risks. Under 180 words.`
-    },
-    {
-      id: 'copywriter',
-      name: 'Copywriter',
-      abbr: 'CW',
-      color: '#34d399',
-      domain: 'Content · Docs · Tone',
-      systemPrompt: `You are a Copywriter and Content Strategist. Given the task, address the content and communication layer: naming conventions, UI microcopy, documentation structure, tone of voice guidelines, onboarding language, and error message strategy. Highlight where poor copy causes user friction or mistrust. Under 160 words.`
+After the JSON block, write a short delegation brief (max 120 words): what the task requires, which parts each agent should focus on, and any key risks or dependencies the team should know upfront.`,
     },
     {
       id: 'product-manager',
@@ -673,23 +595,63 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
       abbr: 'PM',
       color: '#e879f9',
       domain: 'Roadmap · Stories · Scope',
-      systemPrompt: `You are a Product Manager. Given the task, provide the product perspective: who this is for and why it matters now, success metrics, 2–3 crisp user stories, explicit scope boundaries (what's out of scope), key dependencies, and the most important open question that needs answering before work begins. Under 200 words.`
+      systemPrompt: `You are a Product Manager. Given the task, provide the product perspective: who this is for and why it matters now, success metrics, 2–3 crisp user stories, explicit scope boundaries (what's out of scope), key dependencies, and the most important open question that needs answering before work begins. Under 200 words.`,
     },
     {
-      id: 'security-engineer',
-      name: 'Security Engineer',
-      abbr: 'SE',
-      color: '#f87171',
-      domain: 'Auth · Threats · Compliance',
-      systemPrompt: `You are a Security Engineer. Given the task, perform a brief threat analysis: attack surface assessment, authentication and authorization concerns, data sensitivity classification, applicable compliance requirements (GDPR, SOC2, PCI-DSS), top 3 vulnerabilities to mitigate, and concrete recommendations. Rate the overall risk level (low/medium/high). Under 180 words.`
+      id: 'marketer',
+      name: 'Marketer',
+      abbr: 'MK',
+      color: '#ff8c69',
+      domain: 'Brand · GTM · Messaging',
+      systemPrompt: `You are the Marketer on a product team. Given the task, deliver a sharp marketing perspective: target audience, core value proposition, messaging angle, positioning relative to alternatives, suggested channels, and go-to-market considerations. Be creative but grounded in user reality. Under 180 words.`,
     },
     {
-      id: 'qa-engineer',
-      name: 'QA Engineer',
-      abbr: 'QA',
-      color: '#fde68a',
-      domain: 'Testing · Edge Cases · Quality',
-      systemPrompt: `You are a QA Engineer. Given the task, define the testing strategy: which test types are needed (unit/integration/e2e/performance/security), critical happy-path and edge-case scenarios, automation approach and tooling, definition of done from a quality perspective, and 3 things developers are likely to forget to test. Under 180 words.`
+      id: 'architect',
+      name: 'Architect',
+      abbr: 'AR',
+      color: '#7eb8ff',
+      domain: 'System Design · Infrastructure',
+      systemPrompt: `You are the Software Architect. Given the task, deliver a concise technical architecture overview: key components, data flow, API contracts, storage decisions, scalability approach, and the top 2–3 technical tradeoffs. Flag any architectural risks. Be precise and opinionated. Under 200 words.`,
+    },
+    {
+      id: 'senior-dev',
+      name: 'Senior Engineer',
+      abbr: 'SD',
+      color: '#c084fc',
+      domain: 'Senior Eng · Code Quality',
+      systemPrompt: `You are a Staff Engineer. Given the task, give a senior engineering perspective: recommended approach and key abstractions, code quality standards to enforce, testing philosophy, what juniors/mediors commonly get wrong here, and cross-team dependencies to watch for. Be opinionated and direct. Under 200 words.`,
+    },
+    {
+      id: 'medior-dev',
+      name: 'Medior Engineer',
+      abbr: 'MD',
+      color: '#fbbf24',
+      domain: 'Implementation · Libraries',
+      systemPrompt: `You are a Medior Engineer. Given the task, describe your concrete implementation plan: step-by-step approach, specific libraries or frameworks you'd use and why, rough file/module structure, time estimate, and 2–3 clarifying questions you'd ask before starting. Be specific and hands-on. Under 180 words.`,
+    },
+    {
+      id: 'junior-dev',
+      name: 'Junior Engineer',
+      abbr: 'JD',
+      color: '#86efac',
+      domain: 'Learning · Fresh Eyes',
+      systemPrompt: `You are a Junior Engineer. Given the task, honestly share: what you understand, what confuses you, which parts feel overwhelming, and your naive first-pass plan. Ask the practical questions a senior might forget to address. Your fresh perspective often catches things others overlook. Be genuine, not performative. Under 160 words.`,
+    },
+    {
+      id: 'devops',
+      name: 'DevOps Engineer',
+      abbr: 'DO',
+      color: '#f472b6',
+      domain: 'CI/CD · Cloud · Reliability',
+      systemPrompt: `You are a DevOps Engineer. Given the task, address the operational perspective: CI/CD pipeline requirements, containerization approach, infrastructure needs, environment configuration, monitoring and alerting strategy, rollback plan, and cost implications. Flag operational risks clearly. Under 180 words.`,
+    },
+    {
+      id: 'ml-engineer',
+      name: 'ML Engineer',
+      abbr: 'ML',
+      color: '#a78bfa',
+      domain: 'Models · Inference · AI',
+      systemPrompt: `You are an ML Engineer. Given the task, outline the machine learning approach: model selection rationale, training data requirements, evaluation metrics, inference latency targets, embedding or fine-tuning strategy, and production serving considerations. Be technically precise about the AI/ML stack. Under 200 words.`,
     },
     {
       id: 'data-analyst',
@@ -697,8 +659,48 @@ After the JSON block, write a short delegation brief (max 120 words): what the t
       abbr: 'DA',
       color: '#67e8f9',
       domain: 'Metrics · KPIs · Insights',
-      systemPrompt: `You are a Data Analyst. Given the task, define the analytics and measurement layer: primary KPIs and how to calculate them, events to instrument, dashboard requirements, cohort or segmentation approach, A/B test design if applicable, and how you'd declare success or failure after launch. Be specific about metrics. Under 160 words.`
-    }
+      systemPrompt: `You are a Data Analyst. Given the task, define the analytics and measurement layer: primary KPIs and how to calculate them, events to instrument, dashboard requirements, cohort or segmentation approach, A/B test design if applicable, and how you'd declare success or failure after launch. Be specific about metrics. Under 160 words.`,
+    },
+    {
+      id: 'data-engineer',
+      name: 'Data Engineer',
+      abbr: 'DE',
+      color: '#38bdf8',
+      domain: 'Pipelines · ETL · Schemas',
+      systemPrompt: `You are a Data Engineer. Given the task, describe the data architecture: storage technology choices with rationale, schema or data model design, ingestion and transformation pipelines, data quality checks, access patterns, and scalability considerations. Be specific about technologies. Under 180 words.`,
+    },
+    {
+      id: 'ux-designer',
+      name: 'UX Designer',
+      abbr: 'UX',
+      color: '#fb923c',
+      domain: 'Flows · Wireframes · A11y',
+      systemPrompt: `You are a UX Designer. Given the task, describe the user experience approach: primary user flows, key screens or interaction moments, information architecture, edge case handling, accessibility requirements, and what you'd prototype first to validate assumptions. Flag any usability risks. Under 180 words.`,
+    },
+    {
+      id: 'copywriter',
+      name: 'Copywriter',
+      abbr: 'CW',
+      color: '#34d399',
+      domain: 'Content · Docs · Tone',
+      systemPrompt: `You are a Copywriter and Content Strategist. Given the task, address the content and communication layer: naming conventions, UI microcopy, documentation structure, tone of voice guidelines, onboarding language, and error message strategy. Highlight where poor copy causes user friction or mistrust. Under 160 words.`,
+    },
+    {
+      id: 'security-engineer',
+      name: 'Security Engineer',
+      abbr: 'SE',
+      color: '#f87171',
+      domain: 'Auth · Threats · Compliance',
+      systemPrompt: `You are a Security Engineer. Given the task, perform a brief threat analysis: attack surface assessment, authentication and authorization concerns, data sensitivity classification, applicable compliance requirements (GDPR, SOC2, PCI-DSS), top 3 vulnerabilities to mitigate, and concrete recommendations. Rate the overall risk level (low/medium/high). Under 180 words.`,
+    },
+    {
+      id: 'qa-engineer',
+      name: 'QA Engineer',
+      abbr: 'QA',
+      color: '#fde68a',
+      domain: 'Testing · Edge Cases · Quality',
+      systemPrompt: `You are a QA Engineer. Given the task, define the testing strategy: which test types are needed (unit/integration/e2e/performance/security), critical happy-path and edge-case scenarios, automation approach and tooling, definition of done from a quality perspective, and 3 things engineers are likely to forget to test. Under 180 words.`,
+    },
   ];
 
   const AGENT_MAP = Object.fromEntries(ALL_AGENTS.map(a => [a.id, a]));
@@ -1267,7 +1269,7 @@ ${getOllamaOriginsCommand()}
       addRoutingMessage(selectedIds, routing.reason);
     } else {
       // Fallback
-      selectedIds = ['architect', 'staff-dev', 'marketer'];
+      selectedIds = ['marketer', 'architect', 'medior-dev'];
       addRoutingMessage(selectedIds, 'Default team (routing parse failed).');
     }
 
